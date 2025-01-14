@@ -24,7 +24,7 @@
       height: 100vh;
     }
     
-    /* System Monitor Panel (only visible on the main terminal page) */
+    /* System Monitor Panel (only visible on main terminal page) */
     #sysMonitor {
       width: 250px;
       min-width: 250px;
@@ -112,7 +112,7 @@
       font-size: 1rem;
     }
     
-    /* Token Launch Countdown styling */
+    /* Token Launch Countdown styling (only on main terminal page) */
     #countdown {
       font-size: 18px;
       text-align: center;
@@ -130,12 +130,12 @@
       margin: auto;
     }
     
-    /* AI Commentary Container fixed at bottom-right */
+    /* AI Commentary Container fixed at bottom-right (for Pong game) */
     #aiCommentaryContainer {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      display: none; /* Only displayed during specific functions (e.g., Pong) */
+      display: none;
       align-items: flex-end;
       z-index: 5;
     }
@@ -174,7 +174,7 @@
       width: 0;
     }
     
-    /* Terminal Crash Overlay (for game-over effect) */
+    /* Terminal Crash Overlay (for game over effect) */
     #terminalCrashOverlay {
       position: fixed;
       top: 0;
@@ -216,7 +216,7 @@
   
   <!-- Main wrapper: System Monitor on the left, Terminal & Game on the right -->
   <div id="mainWrapper">
-    <!-- System Monitor Panel (Visible only on the main terminal page) -->
+    <!-- System Monitor Panel (visible only on the main terminal page) -->
     <div id="sysMonitor">
       <!-- Logo placeholder above the monitor header -->
       <div id="sysLogo">
@@ -240,7 +240,7 @@
     
     <!-- Main Terminal Container -->
     <div class="container" id="mainContainer">
-      <!-- Token Launch Countdown Timer (only visible on main terminal page) -->
+      <!-- Token Launch Countdown Timer (only on main terminal page) -->
       <div id="countdown">
         Loading Token Launch Countdown...
       </div>
@@ -259,7 +259,7 @@
     </div>
   </div>
   
-  <!-- AI Commentary Container fixed at bottom-right -->
+  <!-- AI Commentary Container fixed at bottom-right (for Pong game) -->
   <div id="aiCommentaryContainer">
     <div id="aiCharacter"></div>
     <div id="aiSpeechBubble"></div>
@@ -272,7 +272,7 @@
   
   <script>
     /*********** TOKEN LAUNCH COUNTDOWN ***********/
-    const targetDate = new Date("December 31, 2024 23:59:59").getTime();
+    const targetDate = new Date("January 24, 2025 23:59:59").getTime();
     const countdownElement = document.getElementById("countdown");
     
     const countdownInterval = setInterval(() => {
@@ -443,8 +443,8 @@
       cancelAnimationFrame(pongAnimationFrame);
       gameStarted = false;
       let winner = (playerScore >= winningScore) ? "Player Wins!" : "AI Wins!";
-      // Play game over sound:
-      var gameOverSound = new Audio('gameover.mp3'); // Replace with your sound file URL
+      // Play game over sound.
+      var gameOverSound = new Audio('gameover.mp3'); // Replace with your game over sound URL
       gameOverSound.play();
       
       if (winner !== "Player Wins!") {
