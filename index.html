@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WW - Terminal AI</title>
+  <style>
+    /* Base reset and styling */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      height: 100%;
+      font-family: 'Courier New', Courier, monospace;
+      background-color: #000;
+      color: #00FF00;
+    }
+    
+    /* Main wrapper: Displays System Monitor and Main Terminal side by side */
+    #mainWrapper {
+      display: flex;
+      height: 100vh;
+    }
+    
+    /* System Monitor Panel (only visible on the main terminal page) */
+    #sysMonitor {
+      width: 250px;
+      min-width: 250px;
+      height: 100vh; /* Full viewport height */
+      background-color: #0a0;
+      color: #000;
+      padding: 20px;
+      overflow-y: auto;
+      font-size: 16px;
+    }
+    /* Logo placeholder above the monitor header */
+    #sysLogo {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    #sysLogo img {
+      max-width: 100%;
+      height: auto;
+    }
+    #sysMonitor h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+      color: #000;
+      text-align: center;
+    }
+    #sysMonitor p {
+      margin-bottom: 8px;
+    }
+    /* Simulated progress bar for usage */
+    .progress-container {
+      background-color: #ccc;
+      border-radius: 5px;
+      overflow: hidden;
+      height: 20px;
+      margin-bottom: 10px;
+    }
+    .progress-bar {
+      height: 100%;
+      background-color: #00FF00;
+      width: 0%;
+      transition: width 1s ease-out;
+    }
+    
+    /* Container for main terminal content and game */
+    .container {
+      flex: 1;
+      margin: 20px auto 0 auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+      overflow: hidden;
+      z-index: 2;
+    }
+    
+    /* Terminal display styling */
+    .terminal {
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid #00FF00;
+      border-radius: 5px;
+      padding: 20px;
+      margin-top: 10px;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+    
+    .input-line {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+    }
+    
+    .prompt {
+      margin-right: 5px;
+    }
+    
+    input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #00FF00;
+      font-family: inherit;
+      font-size: 1rem;
+    }
+    
+    /* Token Launch Countdown styling */
+    #countdown {
+      font-size: 18px;
+      text-align: center;
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #00FF00;
+      border-radius: 5px;
+    }
+    
+    /* Pong game canvas styling */
+    #pongCanvas {
+      background: #000;
+      border: 2px solid #00FF00;
+      display: none;
+      margin: auto;
+    }
+    
+    /* AI Commentary Container fixed at bottom-right */
+    #aiCommentaryContainer {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: none; /* Only displayed during specific functions (e.g., Pong) */
+      align-items: flex-end;
+      z-index: 5;
+    }
+    /* AI character element styled as a robot image */
+    #aiCharacter {
+      width: 50px;
+      height: 50px;
+      background-image: url('robot.png'); /* Replace with your robot image URL */
+      background-size: cover;
+      background-position: center;
+      border-radius: 50%;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    /* AI speech bubble */
+    #aiSpeechBubble {
+      max-width: 250px;
+      background-color: #000;
+      border: 1px solid #00FF00;
+      border-radius: 10px;
+      padding: 8px 12px;
+      position: relative;
+      font-size: 14px;
+      color: #00FF00;
+    }
+    /* Speech bubble arrow */
+    #aiSpeechBubble::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      left: 20px;
+      border-width: 10px 10px 0;
+      border-style: solid;
+      border-color: #000 transparent;
+      display: block;
+      width: 0;
+    }
+    
+    /* Terminal Crash Overlay (for game-over effect) */
+    #terminalCrashOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      color: red;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 36px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      animation: glitch 0.3s infinite;
+    }
+    @keyframes glitch {
+      0% { text-shadow: 2px 2px red, -2px -2px blue; }
+      50% { text-shadow: -2px -2px red, 2px 2px blue; }
+      100% { text-shadow: 2px 2px red, -2px -2px blue; }
+    }
+    
+    /* Responsive tweaks */
+    @media (min-width: 768px) {
+      #sysMonitor {
+        font-size: 18px;
+      }
+      .container {
+        padding: 40px;
+      }
+      .terminal {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- (Binary background removed) -->
+  
+  <!-- Main wrapper: System Monitor on the left, Terminal & Game on the right -->
+  <div id="mainWrapper">
+    <!-- System Monitor Panel (Visible only on the main terminal page) -->
+    <div id="sysMonitor">
+      <!-- Logo placeholder above the monitor header -->
+      <div id="sysLogo">
+        <!-- Replace 'logo.png' with your actual logo image -->
+        <img src="logo.png" alt="System Monitor Logo">
+      </div>
+      <h2>System Monitor</h2>
+      <p>CPU Usage:</p>
+      <div class="progress-container">
+        <div class="progress-bar" id="cpuUsage"></div>
+      </div>
+      <p>Memory Usage:</p>
+      <div class="progress-container">
+        <div class="progress-bar" id="memUsage"></div>
+      </div>
+      <p>Network Activity:</p>
+      <div class="progress-container">
+        <div class="progress-bar" id="netUsage"></div>
+      </div>
+    </div>
+    
+    <!-- Main Terminal Container -->
+    <div class="container" id="mainContainer">
+      <!-- Token Launch Countdown Timer (only visible on main terminal page) -->
+      <div id="countdown">
+        Loading Token Launch Countdown...
+      </div>
+      <!-- Terminal window -->
+      <div class="terminal" id="terminal">
+        <div>Welcome to WW Terminal</div>
+        <div>Type 'help' to display commands.</div>
+      </div>
+      <!-- Input line for commands -->
+      <div class="input-line" id="inputLine">
+        <span class="prompt">&gt;</span>
+        <input type="text" id="commandInput" autocomplete="off" placeholder="Enter command here..." />
+      </div>
+      <!-- Pong game canvas -->
+      <canvas id="pongCanvas" width="600" height="400"></canvas>
+    </div>
+  </div>
+  
+  <!-- AI Commentary Container fixed at bottom-right -->
+  <div id="aiCommentaryContainer">
+    <div id="aiCharacter"></div>
+    <div id="aiSpeechBubble"></div>
+  </div>
+  
+  <!-- Terminal Crash Overlay -->
+  <div id="terminalCrashOverlay">
+    YOU LOSE... SYSTEM CRASHED!
+  </div>
+  
+  <script>
+    /*********** TOKEN LAUNCH COUNTDOWN ***********/
+    const targetDate = new Date("December 31, 2024 23:59:59").getTime();
+    const countdownElement = document.getElementById("countdown");
+    
+    const countdownInterval = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = targetDate - now;
+      
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      
+      countdownElement.textContent = `Token Launch In: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+      
+      if (distance < 0) {
+        clearInterval(countdownInterval);
+        countdownElement.textContent = "TOKEN LAUNCHED!";
+      }
+    }, 1000);
+    
+    /*********** SYSTEM MONITOR SIMULATION ***********/
+    let cpuValue = 30;
+    let memValue = 40;
+    let netValue = 20;
+    
+    const cpuBar = document.getElementById("cpuUsage");
+    const memBar = document.getElementById("memUsage");
+    const netBar = document.getElementById("netUsage");
+    
+    function updateSysMonitor() {
+      cpuValue = Math.min(100, Math.max(0, cpuValue + (Math.random() * 2 - 1)));
+      memValue = Math.min(100, Math.max(0, memValue + (Math.random() * 2 - 1)));
+      netValue = Math.min(100, Math.max(0, netValue + (Math.random() * 2 - 1)));
+      
+      cpuBar.style.width = cpuValue.toFixed(1) + "%";
+      memBar.style.width = memValue.toFixed(1) + "%";
+      netBar.style.width = netValue.toFixed(1) + "%";
+    }
+    setInterval(updateSysMonitor, 1000);
+    
+    /*********** MAIN TERMINAL / PONG GAME CODE ***********/
+    const winningScore = 10;
+    
+    const commandInput = document.getElementById('commandInput');
+    const terminal = document.getElementById('terminal');
+    const inputLine = document.getElementById('inputLine');
+    function appendTerminalOutput(text) {
+      const newLine = document.createElement('div');
+      if (text.includes('http')) {
+        newLine.innerHTML = text;
+      } else {
+        newLine.textContent = text;
+      }
+      terminal.appendChild(newLine);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+    
+    let pongAnimationFrame;
+    const pongCanvas = document.getElementById('pongCanvas');
+    const ctx = pongCanvas.getContext('2d');
+    const pong = {
+      paddleWidth: 10,
+      paddleHeight: 80,
+      ballSize: 10,
+      playerY: pongCanvas.height / 2 - 40,
+      aiY: pongCanvas.height / 2 - 40,
+      ballX: pongCanvas.width / 2,
+      ballY: pongCanvas.height / 2,
+      ballVX: 3,
+      ballVY: 3,
+      ballSpeedIncreaseFactor: 1.05
+    };
+    let playerScore = 0;
+    let aiScore = 0;
+    let gameStarted = false;
+    
+    let lastAiComment = "";
+    const cockyResponses = [
+      "Too easy for me!",
+      "You call that a challenge?",
+      "I am unstoppable!",
+      "Pathetic!",
+      "Looks like I'm winning!",
+      "Better luck next time!",
+      "I'm in a league of my own!",
+      "Try harder, human!",
+      "Victory is mine!",
+      "Is that all you've got?",
+      "I could do this in my sleep!",
+      "You stand no chance!",
+      "My circuits never lie!",
+      "Game over!",
+      "I'm the champion, obviously!"
+    ];
+    const humbleResponses = [
+      "Not my best showing...",
+      "You're quite good!",
+      "I admit, you're tough!",
+      "Well played, human.",
+      "I need to step up my game.",
+      "You got me this time.",
+      "Your skills are impressive!",
+      "I owe you a rematch.",
+      "You're making me work for it!",
+      "I concede, for now.",
+      "I'll learn from this.",
+      "You truly are remarkable!",
+      "I humbly applaud you!",
+      "This round is yours.",
+      "I'll bounce back soon!"
+    ];
+    const neutralResponses = [
+      "Let's see who wins...",
+      "The score is neck and neck.",
+      "It's anyone's game.",
+      "Keep it up!",
+      "Things are heating up.",
+      "Interesting match.",
+      "We're evenly matched.",
+      "This is getting exciting!",
+      "Stay focused!",
+      "May the best win!"
+    ];
+    
+    function getUniqueAiComment(responseArray) {
+      let newComment = responseArray[Math.floor(Math.random() * responseArray.length)];
+      let attempts = 0;
+      while(newComment === lastAiComment && attempts < 5) {
+        newComment = responseArray[Math.floor(Math.random() * responseArray.length)];
+        attempts++;
+      }
+      lastAiComment = newComment;
+      return newComment;
+    }
+    
+    function updateAiCommentOnScore() {
+      let responseArray;
+      const diff = aiScore - playerScore;
+      if (diff >= 2) {
+        responseArray = cockyResponses;
+      } else if (diff <= -2) {
+        responseArray = humbleResponses;
+      } else {
+        responseArray = neutralResponses;
+      }
+      const comment = getUniqueAiComment(responseArray);
+      document.getElementById('aiSpeechBubble').textContent = comment;
+    }
+    
+    function drawPong() {
+      ctx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
+      ctx.fillStyle = '#00FF00';
+      ctx.fillRect(20, pong.playerY, pong.paddleWidth, pong.paddleHeight);
+      ctx.fillRect(pongCanvas.width - 20 - pong.paddleWidth, pong.aiY, pong.paddleWidth, pong.paddleHeight);
+      ctx.fillRect(pong.ballX, pong.ballY, pong.ballSize, pong.ballSize);
+      ctx.font = "20px Courier New";
+      ctx.fillStyle = "#00FF00";
+      ctx.textAlign = "center";
+      ctx.fillText(`Player: ${playerScore}   AI: ${aiScore}`, pongCanvas.width / 2, 30);
+      if (!gameStarted) {
+        ctx.font = "24px Courier New";
+        ctx.fillStyle = "#00FF00";
+        ctx.textAlign = "center";
+        ctx.fillText("Press Spacebar to Start", pongCanvas.width / 2, pongCanvas.height / 2);
+      }
+    }
+    
+    function endGame() {
+      cancelAnimationFrame(pongAnimationFrame);
+      gameStarted = false;
+      let winner = (playerScore >= winningScore) ? "Player Wins!" : "AI Wins!";
+      // Play game over sound:
+      var gameOverSound = new Audio('gameover.mp3'); // Replace with your sound file URL
+      gameOverSound.play();
+      
+      if (winner !== "Player Wins!") {
+        const crashOverlay = document.getElementById('terminalCrashOverlay');
+        crashOverlay.style.display = "flex";
+        setTimeout(() => {
+          crashOverlay.style.display = "none";
+          returnToTerminal();
+        }, 4000);
+      } else {
+        setTimeout(returnToTerminal, 2000);
+      }
+      ctx.clearRect(0, 0, pongCanvas.width, pongCanvas.height);
+      ctx.font = "36px Courier New";
+      ctx.fillStyle = "#00FF00";
+      ctx.textAlign = "center";
+      ctx.fillText(winner, pongCanvas.width / 2, pongCanvas.height / 2);
+    }
+    
+    function returnToTerminal() {
+      playerScore = 0;
+      aiScore = 0;
+      pongCanvas.style.display = "none";
+      document.getElementById('aiCommentaryContainer').style.display = "none";
+      // Show System Monitor and Token Countdown on main terminal page.
+      document.getElementById('sysMonitor').style.display = "block";
+      document.getElementById('countdown').style.display = "block";
+      terminal.style.display = "block";
+      inputLine.style.display = "flex";
+    }
+    
+    function updatePong() {
+      if (!gameStarted) return;
+      
+      pong.ballX += pong.ballVX;
+      pong.ballY += pong.ballVY;
+      
+      if (pong.ballY <= 0 || pong.ballY + pong.ballSize >= pongCanvas.height) {
+        pong.ballVY = -pong.ballVY;
+      }
+      
+      if (pong.ballX <= 20 + pong.paddleWidth) {
+        if (pong.ballY + pong.ballSize >= pong.playerY && pong.ballY <= pong.playerY + pong.paddleHeight) {
+          pong.ballVX = -pong.ballVX * pong.ballSpeedIncreaseFactor;
+          pong.ballVY *= pong.ballSpeedIncreaseFactor;
+        } else {
+          aiScore++;
+          if (playerScore >= winningScore || aiScore >= winningScore) {
+            endGame();
+            updateAiCommentOnScore();
+            return;
+          }
+          resetPong();
+          updateAiCommentOnScore();
+        }
+      }
+      
+      if (pong.ballX + pong.ballSize >= pongCanvas.width - 20 - pong.paddleWidth) {
+        if (pong.ballY + pong.ballSize >= pong.aiY && pong.ballY <= pong.aiY + pong.paddleHeight) {
+          pong.ballVX = -pong.ballVX * pong.ballSpeedIncreaseFactor;
+          pong.ballVY *= pong.ballSpeedIncreaseFactor;
+        } else {
+          playerScore++;
+          if (playerScore >= winningScore || aiScore >= winningScore) {
+            endGame();
+            updateAiCommentOnScore();
+            return;
+          }
+          resetPong();
+          updateAiCommentOnScore();
+        }
+      }
+      
+      let aiSpeed;
+      if (playerScore === aiScore) {
+        aiSpeed = 4;
+      } else if (playerScore < aiScore) {
+        aiSpeed = 2;
+      } else {
+        aiSpeed = 3;
+      }
+      
+      if (pong.ballY < pong.aiY + pong.paddleHeight / 2) {
+        pong.aiY -= aiSpeed;
+      } else {
+        pong.aiY += aiSpeed;
+      }
+      
+      pong.playerY = Math.max(0, Math.min(pong.playerY, pongCanvas.height - pong.paddleHeight));
+      pong.aiY = Math.max(0, Math.min(pong.aiY, pongCanvas.height - pong.paddleHeight));
+    }
+    
+    function resetPong() {
+      pong.ballX = pongCanvas.width / 2;
+      pong.ballY = pongCanvas.height / 2;
+      pong.ballVX = 3;
+      pong.ballVY = 3;
+      gameStarted = false;
+      drawPong();
+    }
+    
+    function gameLoop() {
+      updatePong();
+      drawPong();
+      pongAnimationFrame = requestAnimationFrame(gameLoop);
+    }
+    
+    function startPongGame() {
+      terminal.style.display = "none";
+      inputLine.style.display = "none";
+      // Hide System Monitor and Token Launch Countdown when switching to Pong
+      document.getElementById('sysMonitor').style.display = "none";
+      document.getElementById('countdown').style.display = "none";
+      pongCanvas.style.display = "block";
+      document.getElementById('aiCommentaryContainer').style.display = "flex";
+      gameLoop();
+      pongCanvas.addEventListener('mousemove', function(e) {
+        const rect = pongCanvas.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        pong.playerY = y - pong.paddleHeight / 2;
+      });
+      document.addEventListener('keydown', handleSpacebar);
+    }
+    
+    function handleSpacebar(e) {
+      if (e.code === 'Space' && !gameStarted) {
+        gameStarted = true;
+      }
+    }
+    
+    function processCommand(command) {
+      const trimmedCommand = command.trim().toLowerCase();
+      switch (trimmedCommand) {
+        case 'help':
+          appendTerminalOutput("Available commands: help, about, clear, twitter, pong");
+          break;
+        case 'about':
+          appendTerminalOutput("WW is a terminal-based AI Robot. How may I assist you?");
+          break;
+        case 'clear':
+          terminal.innerHTML = "";
+          break;
+        case 'twitter':
+          const twitterURL = "https://x.com/ww_terminal";
+          appendTerminalOutput(`Visit WW on Twitter: <a href="${twitterURL}" target="_blank" style="color: #00FF00;">${twitterURL}</a>`);
+          break;
+        case 'pong':
+          appendTerminalOutput("Launching Pong game...");
+          startPongGame();
+          break;
+        default:
+          if (trimmedCommand === "") {
+            // Do nothing.
+          } else {
+            appendTerminalOutput("Error: Command not recognized. Type 'help' for available commands.");
+          }
+          break;
+      }
+    }
+    
+    commandInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        const command = commandInput.value;
+        appendTerminalOutput("> " + command);
+        processCommand(command);
+        commandInput.value = "";
+      }
+    });
+  </script>
+</body>
+</html>
